@@ -1,6 +1,6 @@
 
-class Chunk:
-    """
+class Chunk(object):
+    u"""
     The chunk class
     Will be basically used act as proxy to points between segments
     So we can have a chunk in the middle of a segment, to preserve virtual address space as I don't want to create new segments for every patch
@@ -32,6 +32,6 @@ class Chunk:
 
     def update_data(self, content):
         if len(content) > self._size:
-            raise Exception("Content larger than size")
+            raise Exception(u"Content larger than size")
         self._segment.update_data(content, start_offset=self._start_offset)
 

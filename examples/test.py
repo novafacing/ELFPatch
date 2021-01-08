@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 from ELFPatch import ELFPatch
 
-f = ELFPatch(b"./test")
+f = ELFPatch("./test")
 
 new_patch = f.new_patch(virtual_address=f.elf.ehdr.e_entry, size=0x100, append_original_instructions=True, append_jump_back=True)
 
-new_patch.update_patch(f.assembler.assemble("""
+new_patch.update_patch(f.assembler.assemble(u"""
 push rax
 push rdi
 push rsi
@@ -34,5 +35,5 @@ pop rax
 """,offset=new_patch.chunk.virtual_address))
 
 
-print("New Patch at", hex(new_patch.chunk.virtual_address))
-f.write_file("./out")
+print u"New Patch at", hex(new_patch.chunk.virtual_address)
+f.write_file(u"./out")

@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 from keystone import *
 from capstone import *
 
-class PwnAssembler:
+class PwnAssembler(object):
     def __init__(self, arch, mode):
         self.arch = arch
         self.mode = mode
@@ -9,9 +10,9 @@ class PwnAssembler:
         self.assembler = Ks(arch, mode)
 
     def assemble(self, data, offset=0):
-        return bytes(self.assembler.asm(data, offset)[0])
+        return str(self.assembler.asm(data, offset)[0])
 
-class PwnDisassembler:
+class PwnDisassembler(object):
     def __init__(self, arch, mode):
         self.arch = arch
         self.mode = mode

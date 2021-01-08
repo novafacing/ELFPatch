@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from construct import *
 
 #32 bit ELF struct type definitions

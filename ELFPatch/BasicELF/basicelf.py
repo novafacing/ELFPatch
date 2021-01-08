@@ -1,3 +1,5 @@
+from __future__ import with_statement
+from __future__ import absolute_import
 from .elfstructs import *
 from . import structs as StructSkeletons 
 from .elfparse import ELFParse
@@ -5,10 +7,11 @@ from .constants import *
 from construct import *
 from .segment import *
 from .utils import page_start, page_end
+from io import open
 
-class BasicELF:
+class BasicELF(object):
     def __init__(self, ELFFile):
-        with open(ELFFile, "rb") as f:
+        with open(ELFFile, u"rb") as f:
             self.rawelf = bytearray(f.read())
 
         self._init_structs()
@@ -22,10 +25,10 @@ class BasicELF:
 
     def write_file(self, filename):
         self._update_raw_elf()
-        with open(filename, "wb") as f:
+        with open(filename, u"wb") as f:
             f.write(self.rawelf)
 
-    def new_segment(self, content=b"", flags=PT_R|PT_W|PT_X, type=PT_LOAD, size=None, align=0x1000, virtual_address=None, physical_off=None):
+    def new_segment(self, content="", flags=PT_R|PT_W|PT_X, type=PT_LOAD, size=None, align=0x1000, virtual_address=None, physical_off=None):
         if not self._phdr_fixed:
             self._phdr_fixed = True
             self._fix_phdr()
@@ -34,7 +37,7 @@ class BasicELF:
             physical_offset, virtual_addr = physical_off, virtual_address
         elif virtual_address is None and physical_off is not None:
             #TODO: Implement physical to virtual generation
-            raise Exception("Cannot generate an segment with only physical offset")
+            raise Exception(u"Cannot generate an segment with only physical offset")
         elif virtual_address is not None:
             physical_offset, virtual_addr = self._generate_physical_offset_for_virtual(virtual_address), virtual_address
         else:
@@ -131,7 +134,7 @@ class BasicELF:
         largest_unused_space, poff, vaddr, segment_ref = -1, -1, -1, None
         #Essentially go through all the segments in sorted order and see if they have space in between (expects sane
         #non overlapping segments
-        for idx in range(len(all_load_segs)-1):
+        for idx in xrange(len(all_load_segs)-1):
             current_segment = all_load_segs[idx]
             current_segment_end_poff = current_segment.p_offset + current_segment.p_memsz
             current_segment_end_vaddr = current_segment.p_vaddr + current_segment.p_memsz
@@ -248,7 +251,7 @@ class BasicELF:
         elif self.rawelf[4] == 0x2:
             self._bits = 64
         else:
-            raise Exception("Not a valid 32/64 bit ELF")
+            raise Exception(u"Not a valid 32/64 bit ELF")
 
         self._structs = ELFStructs()
             #Initialize the structures used based on the bitsize so we don't have to look them up everytime
@@ -267,7 +270,7 @@ class BasicELF:
         for segment in self._added_segments:
             segment_end = (segment.physical_offset + segment.size)
             if segment_end > len(self.rawelf):
-                self.rawelf += b"\x00" * (segment_end - len(self.rawelf) + 1)
+                self.rawelf += "\x00" * (segment_end - len(self.rawelf) + 1)
                 self.rawelf[segment.physical_offset:segment.physical_offset+len(segment.content)] = segment.content
 
         # self._added_segments = []
@@ -279,7 +282,7 @@ class BasicELF:
 
         #Check if Phdr table is after the end of the binary, and pad it with nulls if it is
         if phdr_end > len(self.rawelf):
-            self.rawelf += b"\x00" * (phdr_end - len(self.rawelf)) 
+            self.rawelf += "\x00" * (phdr_end - len(self.rawelf)) 
 
         #Due to the limitations of the construct library (Not dynamic arrays), I create a new phdr_table struct to finally serialize the phdr in raw bytes
         self.rawelf[phdr_offset:phdr_end] = Array(self.elf.ehdr.e_phnum, self._structs.Elf_phdr).build(self.elf.phdr_table)

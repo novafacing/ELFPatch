@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from .BasicELF import BasicELF
 from .BasicELF.constants import *
 from .chunk_manager import ChunkManager
@@ -9,7 +10,7 @@ from capstone import *
 class ELFPatch(BasicELF):
 
     def __init__(self, ELFFile):
-        super().__init__(ELFFile)
+        super(ELFPatch, self).__init__(ELFFile)
         self._chunks = []
         self.patches = []
 
@@ -23,7 +24,7 @@ class ELFPatch(BasicELF):
             self.disassembler = PwnDisassembler(CS_ARCH_X86, CS_MODE_64)
 
 
-    def new_chunk(self, size=None, content=b"", flags='rwx'):
+    def new_chunk(self, size=None, content="", flags=u'rwx'):
         if size is None:
             size = len(content)
 
@@ -36,7 +37,7 @@ class ELFPatch(BasicELF):
                 #If no exception, then succeded, return
                 return new_chunk
             #errorn in adding chunk, pass
-            except Exception as e:
+            except Exception, e:
                 # print(e)
                 pass
 
@@ -52,7 +53,7 @@ class ELFPatch(BasicELF):
         
         return managed_chunk.new_chunk(size=size, content=content, flags=flags) 
 
-    def new_patch(self, virtual_address, size=None, content=b"", append_jump_back=True, append_original_instructions=True):
+    def new_patch(self, virtual_address, size=None, content="", append_jump_back=True, append_original_instructions=True):
         if size is None:
             size = len(content)
 
@@ -60,21 +61,21 @@ class ELFPatch(BasicELF):
 
         chunk_for_patch = self.new_chunk(size+0x10) #Extra size cuz we might need to append a jump back
 
-        jump_to_chunk = self.assembler.assemble("jmp {}".format(chunk_for_patch.virtual_address), offset=virtual_address)
+        jump_to_chunk = self.assembler.assemble(u"jmp {}".format(chunk_for_patch.virtual_address), offset=virtual_address)
 
         size_of_jump = len(jump_to_chunk)
 
-        overwritten_instructions = b""
+        overwritten_instructions = ""
         #Basically start disasemling from the address where we have to patch to the point where we can overwrite it with jmp instruction and not fuck adjacent instructions
         #cuz x86 is not fixed length
         #Then we will pad the jmp with NOPs to take exactly as much as a full disassembled instruction so that we don't have broken instructions
         for instr in self.disassembler.disassemble(self.rawelf[physical_offset:], offset=virtual_address):
-            overwritten_instructions += instr.bytes
+            overwritten_instructions += instr.str
             #If we have disassembled enough
             if len(overwritten_instructions) >= size_of_jump:
                 break
         #Pad it
-        jump_to_chunk += b"\x90"*(len(overwritten_instructions) - size_of_jump) 
+        jump_to_chunk += "\x90"*(len(overwritten_instructions) - size_of_jump) 
 
         new_patch = Patch(chunk_for_patch, virtual_address, patched_jump=jump_to_chunk, assembler=self.assembler, append_jump_back=append_jump_back, append_original_instructions=append_original_instructions, original_instructions=overwritten_instructions)
 
@@ -85,11 +86,11 @@ class ELFPatch(BasicELF):
 
     def _translate_flags(self, flags):
         new_flags = 0
-        if 'r' in flags or "R" in flags:
+        if u'r' in flags or u"R" in flags:
             new_flags |= PT_R
-        if 'w' in flags or "W" in flags:
+        if u'w' in flags or u"W" in flags:
             new_flags |= PT_W
-        if 'x' in flags or "X" in flags:
+        if u'x' in flags or u"X" in flags:
             new_flags |= PT_X
         
         return new_flags
@@ -97,7 +98,7 @@ class ELFPatch(BasicELF):
 
     def _update_raw_elf(self):
         #Call the original update to get the segments added
-        super()._update_raw_elf()
+        super(ELFPatch, self)._update_raw_elf()
 
         for patch in self.patches:
             physical_offset_patch = self.virtual_to_physical(patch.virtual_address)
